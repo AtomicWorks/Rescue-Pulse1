@@ -31,8 +31,8 @@ export interface EmergencyAlert {
   severity: SeverityLevel;
   isEmergency: boolean;
   isAnonymous?: boolean;
-  verificationCount?: number;
-  isVerified?: boolean;
+  voteScore?: number;
+  userVote?: 1 | -1; // 1 = up, -1 = down
 }
 
 export interface ChatMessage {

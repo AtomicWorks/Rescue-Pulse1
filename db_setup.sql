@@ -58,20 +58,21 @@ create table if not exists public.profiles (
   skills text[]
 );
 
--- Verifications Table for Alert Upvotes
-create table if not exists public.verifications (
+-- Votes Table for Up/Down votes
+create table if not exists public.votes (
   id uuid default gen_random_uuid() primary key,
   alert_id uuid not null references public.alerts(id) on delete cascade,
   user_id uuid not null,
+  vote_type integer not null check (vote_type in (1, -1)),
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   unique(alert_id, user_id)
 );
 
--- Add verification_count to alerts if it doesn't exist
+-- Add vote_score to alerts if it doesn't exist
 do $$
 begin
-  if not exists (select 1 from information_schema.columns where table_name='alerts' and column_name='verification_count') then
-    alter table public.alerts add column verification_count integer default 0;
+  if not exists (select 1 from information_schema.columns where table_name='alerts' and column_name='vote_score') then
+    alter table public.alerts add column vote_score integer default 0;
   end if;
 end $$;
 
@@ -80,7 +81,7 @@ alter table public.alerts enable row level security;
 alter table public.messages enable row level security;
 alter table public.comments enable row level security;
 alter table public.profiles enable row level security;
-alter table public.verifications enable row level security;
+alter table public.votes enable row level security;
 
 -- Drop existing policies to ensure clean state and avoid conflicts
 drop policy if exists "Everyone can read alerts" on public.alerts;
@@ -103,9 +104,10 @@ drop policy if exists "Public profiles are viewable by everyone" on public.profi
 drop policy if exists "Users can insert their own profile" on public.profiles;
 drop policy if exists "Users can update own profile" on public.profiles;
 
-drop policy if exists "Everyone can read verifications" on public.verifications;
-drop policy if exists "Authenticated users can verify alerts" on public.verifications;
-drop policy if exists "Users can remove their verification" on public.verifications;
+drop policy if exists "Everyone can read votes" on public.votes;
+drop policy if exists "Authenticated users can vote" on public.votes;
+drop policy if exists "Users can update their vote" on public.votes;
+drop policy if exists "Users can remove their vote" on public.votes;
 
 -- Alerts Policies
 create policy "Everyone can read alerts" 
@@ -180,17 +182,21 @@ create policy "Users can update own profile"
 on public.profiles for update 
 using (auth.uid() = id);
 
--- Verifications Policies
-create policy "Everyone can read verifications" 
-on public.verifications for select 
+-- Votes Policies
+create policy "Everyone can read votes" 
+on public.votes for select 
 using (true);
 
-create policy "Authenticated users can verify alerts" 
-on public.verifications for insert 
+create policy "Authenticated users can vote" 
+on public.votes for insert 
 with check (auth.role() = 'authenticated');
 
-create policy "Users can remove their verification" 
-on public.verifications for delete 
+create policy "Users can update their vote" 
+on public.votes for update 
+using (auth.uid() = user_id);
+
+create policy "Users can remove their vote" 
+on public.votes for delete 
 using (auth.uid() = user_id);
 
 -- CRITICAL: Enable Realtime
@@ -226,29 +232,34 @@ begin
     alter publication supabase_realtime add table public.comments;
   end if;
 
-  -- Verifications Realtime
+  -- Votes Realtime
   if not exists (
     select 1 from pg_publication_tables 
     where pubname = 'supabase_realtime' 
     and schemaname = 'public' 
-    and tablename = 'verifications'
+    and tablename = 'votes'
   ) then
-    alter publication supabase_realtime add table public.verifications;
+    alter publication supabase_realtime add table public.votes;
   end if;
 end $$;
 
--- Trigger to maintain verification_count
-create or replace function public.update_verification_count()
+-- Trigger to maintain vote_score
+create or replace function public.update_vote_score()
 returns trigger as $$
 begin
   if (TG_OP = 'INSERT') then
     update public.alerts 
-    set verification_count = verification_count + 1
+    set vote_score = vote_score + NEW.vote_type
+    where id = NEW.alert_id;
+    return NEW;
+  elsif (TG_OP = 'UPDATE') then
+    update public.alerts 
+    set vote_score = vote_score - OLD.vote_type + NEW.vote_type
     where id = NEW.alert_id;
     return NEW;
   elsif (TG_OP = 'DELETE') then
     update public.alerts 
-    set verification_count = verification_count - 1
+    set vote_score = vote_score - OLD.vote_type
     where id = OLD.alert_id;
     return OLD;
   end if;
@@ -256,7 +267,7 @@ begin
 end;
 $$ language plpgsql;
 
-drop trigger if exists on_verification_change on public.verifications;
-create trigger on_verification_change
-after insert or delete on public.verifications
-for each row execute function public.update_verification_count();
+drop trigger if exists on_vote_change on public.votes;
+create trigger on_vote_change
+after insert or update or delete on public.votes
+for each row execute function public.update_vote_score();

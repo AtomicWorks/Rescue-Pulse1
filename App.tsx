@@ -148,6 +148,19 @@ const AppContent: React.FC = () => {
         }
       }
 
+      // Fetch user's votes if logged in
+      const userVotes = new Map<string, 1 | -1>();
+      if (user) {
+        const { data: votes } = await supabase
+          .from('votes')
+          .select('alert_id, vote_type')
+          .eq('user_id', user.id);
+
+        if (votes) {
+          votes.forEach(v => userVotes.set(v.alert_id, v.vote_type as 1 | -1));
+        }
+      }
+
       const mappedAlerts: EmergencyAlert[] = data.map(a => ({
         id: a.id,
         userId: a.user_id,
@@ -162,8 +175,8 @@ const AppContent: React.FC = () => {
         severity: a.severity || 'Medium',
         isEmergency: a.is_emergency !== false,
         isAnonymous: a.is_anonymous === true,
-        verificationCount: a.verification_count || 0,
-        isVerified: userVerifications.has(a.id)
+        voteScore: a.vote_score || 0,
+        userVote: userVotes.get(a.id)
       }));
       setAlerts(mappedAlerts);
 
@@ -226,8 +239,8 @@ const AppContent: React.FC = () => {
                   severity: updated.severity,
                   isEmergency: updated.is_emergency !== false,
                   isAnonymous: updated.is_anonymous === true,
-                  verificationCount: updated.verification_count || 0,
-                  isVerified: a.isVerified // Keep local verified state
+                  voteScore: updated.vote_score || 0,
+                  userVote: a.userVote // Keep local vote state
                 };
               }
               return a;
@@ -455,35 +468,66 @@ const AppContent: React.FC = () => {
     await broadcastAlertOrPost(category, description, false, severity, isAnonymous);
   }, [user, userLocation]);
 
-  const handleVerifyAlert = async (alertId: string, isVerified: boolean) => {
+  const handleVote = async (alertId: string, type: 'up' | 'down') => {
     if (!user) return;
+
+    const alert = alerts.find(a => a.id === alertId);
+    if (!alert) return;
+
+    const currentVote = alert.userVote;
+    const voteVal = type === 'up' ? 1 : -1;
+    let newVote: 1 | -1 | undefined = voteVal;
+    let scoreDelta = 0;
+
+    if (currentVote === voteVal) {
+      // Toggle off
+      newVote = undefined;
+      scoreDelta = -voteVal;
+    } else if (currentVote) {
+      // Switch vote
+      scoreDelta = 2 * voteVal;
+    } else {
+      // New vote
+      scoreDelta = voteVal;
+    }
 
     // Optimistic Update
     setAlerts(prev => prev.map(a => {
       if (a.id === alertId) {
         return {
           ...a,
-          isVerified: !isVerified,
-          verificationCount: (a.verificationCount || 0) + (!isVerified ? 1 : -1)
+          userVote: newVote,
+          voteScore: (a.voteScore || 0) + scoreDelta
         };
       }
       return a;
     }));
 
-    if (!isVerified) {
-      // Verify
-      const { error } = await supabase.from('verifications').insert({
+    // DB Update
+    if (newVote === undefined) {
+      // Remove vote
+      const { error } = await supabase.from('votes').delete().match({
         alert_id: alertId,
         user_id: user.id
       });
-      if (error) console.error("Verify failed:", error);
+      if (error) console.error("Vote remove failed:", error);
+    } else if (currentVote) {
+      // Update vote
+      const { error } = await supabase.from('votes').update({
+        vote_type: newVote
+      }).match({
+        alert_id: alertId,
+        user_id: user.id
+      });
+      if (error) console.error("Vote update failed:", error);
     } else {
-      // Unverify
-      const { error } = await supabase.from('verifications').delete().match({
+      // Insert vote
+      const { error } = await supabase.from('votes').insert({
         alert_id: alertId,
-        user_id: user.id
+        user_id: user.id,
+        vote_type: newVote
       });
-      if (error) console.error("Unverify failed:", error);
+      if (error) console.error("Vote insert failed:", error);
     }
   };
 
@@ -819,7 +863,7 @@ const AppContent: React.FC = () => {
                   alert={alert}
                   onRespond={handleRespond}
                   onDelete={handleDeleteAlert}
-                  onVerify={handleVerifyAlert}
+                  onVote={handleVote}
                   onMessage={handleStartChat}
                   onViewProfile={handleViewProfile}
                   currentUser={user}
@@ -848,7 +892,7 @@ const AppContent: React.FC = () => {
                   alert={alert}
                   onRespond={handleRespond}
                   onDelete={handleDeleteAlert}
-                  onVerify={handleVerifyAlert}
+                  onVote={handleVote}
                   onMessage={handleStartChat}
                   onViewProfile={handleViewProfile}
                   currentUser={user}

@@ -9,13 +9,13 @@ interface AlertCardProps {
   alert: EmergencyAlert;
   onRespond: (alertId: string) => void;
   onDelete?: (alertId: string) => void;
-  onVerify?: (alertId: string, isVerified: boolean) => void;
+  onVote?: (alertId: string, type: 'up' | 'down') => void;
   onMessage?: (userId: string, userName: string, userAvatar?: string) => void;
   onViewProfile?: (userId: string) => void;
   currentUser: User | null;
 }
 
-const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onVerify, onMessage, onViewProfile, currentUser }) => {
+const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onVote, onMessage, onViewProfile, currentUser }) => {
   const { isDark } = useTheme();
   const d = isDark;
   const [advice, setAdvice] = useState<string | null>(null);
@@ -291,26 +291,36 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onVer
 
         {!isCurrentUser && (
           <>
-            {/* Verify Button */}
-            {onVerify && (
-              <button
-                onClick={() => onVerify(alert.id, !!alert.isVerified)}
-                className={`flex-1 min-w-[100px] py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 border ${alert.isVerified
-                    ? (d ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-emerald-100 text-emerald-700 border-emerald-200')
-                    : (d ? 'bg-white/5 text-slate-400 hover:bg-white/10 border-white/10' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border-slate-200')
-                  }`}
-              >
-                <svg className="w-4 h-4" fill={alert.isVerified ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                {alert.isVerified ? 'Verified' : 'Verify'}
-                {(alert.verificationCount || 0) > 0 && (
-                  <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[9px] ${alert.isVerified
-                      ? (d ? 'bg-emerald-500/20' : 'bg-white/50')
-                      : (d ? 'bg-white/10' : 'bg-slate-200')
-                    }`}>
-                    {alert.verificationCount}
-                  </span>
-                )}
-              </button>
+            {/* Voting UI */}
+            {onVote && (
+              <div className={`flex items-center rounded-xl overflow-hidden border ${d ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
+                <button
+                  onClick={() => onVote(alert.id, 'up')}
+                  className={`p-2.5 transition-colors ${alert.userVote === 1
+                      ? (d ? 'bg-orange-500/20 text-orange-500' : 'bg-orange-100 text-orange-600')
+                      : (d ? 'text-slate-400 hover:text-orange-400 hover:bg-white/5' : 'text-slate-500 hover:text-orange-500 hover:bg-slate-200')
+                    }`}
+                >
+                  <svg className="w-5 h-5" fill={alert.userVote === 1 ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 15l7-7 7 7" /></svg>
+                </button>
+
+                <span className={`text-xs font-bold min-w-[20px] text-center ${alert.userVote === 1 ? 'text-orange-500' :
+                    alert.userVote === -1 ? 'text-blue-500' :
+                      (d ? 'text-slate-300' : 'text-slate-700')
+                  }`}>
+                  {alert.voteScore || 0}
+                </span>
+
+                <button
+                  onClick={() => onVote(alert.id, 'down')}
+                  className={`p-2.5 transition-colors ${alert.userVote === -1
+                      ? (d ? 'bg-blue-500/20 text-blue-500' : 'bg-blue-100 text-blue-600')
+                      : (d ? 'text-slate-400 hover:text-blue-400 hover:bg-white/5' : 'text-slate-500 hover:text-blue-500 hover:bg-slate-200')
+                    }`}
+                >
+                  <svg className="w-5 h-5" fill={alert.userVote === -1 ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" /></svg>
+                </button>
+              </div>
             )}
 
             {/* Message Button */}
