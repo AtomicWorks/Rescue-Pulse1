@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { UserActivity } from '../types';
 import { supabase } from '../services/supabaseClient';
 import { useTheme } from './ThemeContext';
+import { useLanguage } from './LanguageContext';
 
 interface ActivityListProps {
     userId: string;
@@ -10,6 +11,7 @@ interface ActivityListProps {
 
 const ActivityList: React.FC<ActivityListProps> = ({ userId, onViewAlert }) => {
     const { isDark } = useTheme();
+    const { t, language } = useLanguage();
     const d = isDark;
     const [activities, setActivities] = useState<UserActivity[]>([]);
     const [loading, setLoading] = useState(true);
@@ -47,9 +49,9 @@ const ActivityList: React.FC<ActivityListProps> = ({ userId, onViewAlert }) => {
     return (
         <div className="space-y-3">
             {loading ? (
-                <div className={`text-center py-8 text-sm ${d ? 'text-slate-500' : 'text-slate-400'}`}>Loading history...</div>
+                <div className={`text-center py-8 text-sm ${d ? 'text-slate-500' : 'text-slate-400'}`}>{t('profile.activity.loading')}</div>
             ) : activities.length === 0 ? (
-                <div className={`text-center py-8 text-sm ${d ? 'text-slate-500' : 'text-slate-400'}`}>No recent activity found.</div>
+                <div className={`text-center py-8 text-sm ${d ? 'text-slate-500' : 'text-slate-400'}`}>{t('profile.activity.empty')}</div>
             ) : (
                 activities.map(activity => (
                     <div
@@ -58,21 +60,21 @@ const ActivityList: React.FC<ActivityListProps> = ({ userId, onViewAlert }) => {
                         className={`cursor-pointer p-3 rounded-xl border transition-all flex items-start gap-3 ${d ? 'bg-white/5 border-white/10 hover:bg-white/10' : 'bg-white border-slate-100 hover:border-slate-300'}`}
                     >
                         <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${activity.type === 'created_alert' ? (d ? 'bg-red-500/20 text-red-400' : 'bg-red-50 text-red-500') :
-                                activity.type === 'commented' ? (d ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-500') :
-                                    activity.type === 'upvoted' ? (d ? 'bg-orange-500/20 text-orange-400' : 'bg-orange-50 text-orange-500') :
-                                        'bg-slate-100 text-slate-500'
+                            activity.type === 'commented' ? (d ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-500') :
+                                activity.type === 'upvoted' ? (d ? 'bg-orange-500/20 text-orange-400' : 'bg-orange-50 text-orange-500') :
+                                    'bg-slate-100 text-slate-500'
                             }`}>
                             {renderIcon(activity.type)}
                         </div>
                         <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-start">
                                 <p className={`text-sm font-medium ${d ? 'text-white' : 'text-slate-900'}`}>
-                                    {activity.type === 'created_alert' && 'Posted an Alert'}
-                                    {activity.type === 'commented' && 'Commented'}
-                                    {activity.type === 'upvoted' && 'Upvoted'}
+                                    {activity.type === 'created_alert' && t('profile.activity.postedAlert')}
+                                    {activity.type === 'commented' && t('profile.activity.commented')}
+                                    {activity.type === 'upvoted' && t('profile.activity.upvoted')}
                                 </p>
                                 <span className={`text-[10px] ${d ? 'text-slate-500' : 'text-slate-400'}`}>
-                                    {new Date(activity.created_at).toLocaleDateString()}
+                                    {new Date(activity.created_at).toLocaleDateString(language)}
                                 </span>
                             </div>
                             {activity.metadata && (activity.metadata.title || activity.metadata.text) && (

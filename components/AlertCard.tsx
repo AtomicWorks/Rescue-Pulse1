@@ -4,6 +4,7 @@ import { EmergencyAlert, User, AlertComment } from '../types';
 import { getFirstAidAdvice, findNearbyPlaces } from '../services/geminiService';
 import { supabase } from '../services/supabaseClient';
 import { useTheme } from './ThemeContext';
+import { useLanguage } from './LanguageContext';
 
 interface AlertCardProps {
   alert: EmergencyAlert;
@@ -18,6 +19,7 @@ interface AlertCardProps {
 
 const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onVote, onComments, onMessage, onViewProfile, currentUser }) => {
   const { isDark } = useTheme();
+  const { t } = useLanguage();
   const d = isDark;
   const [advice, setAdvice] = useState<string | null>(null);
   const [loadingAdvice, setLoadingAdvice] = useState(false);
@@ -147,16 +149,16 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onVot
   const severityBadge = (level: string) => {
     if (d) {
       switch (level) {
-        case 'Low': return <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 uppercase tracking-wide">Easy Task</span>;
-        case 'Medium': return <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/20 uppercase tracking-wide">Medium Task</span>;
-        case 'High': return <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-orange-500/15 text-orange-400 border border-orange-500/20 uppercase tracking-wide">Hard Task</span>;
+        case 'Low': return <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 uppercase tracking-wide">{t('alert.taskDifficulty.easy')}</span>;
+        case 'Medium': return <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/20 uppercase tracking-wide">{t('alert.taskDifficulty.medium')}</span>;
+        case 'High': return <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-orange-500/15 text-orange-400 border border-orange-500/20 uppercase tracking-wide">{t('alert.taskDifficulty.hard')}</span>;
         default: return null;
       }
     } else {
       switch (level) {
-        case 'Low': return <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 uppercase tracking-wide">Easy Task</span>;
-        case 'Medium': return <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 uppercase tracking-wide">Medium Task</span>;
-        case 'High': return <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-orange-50 text-orange-700 border border-orange-100 uppercase tracking-wide">Hard Task</span>;
+        case 'Low': return <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 uppercase tracking-wide">{t('alert.taskDifficulty.easy')}</span>;
+        case 'Medium': return <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 uppercase tracking-wide">{t('alert.taskDifficulty.medium')}</span>;
+        case 'High': return <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-orange-50 text-orange-700 border border-orange-100 uppercase tracking-wide">{t('alert.taskDifficulty.hard')}</span>;
         default: return null;
       }
     }
@@ -201,14 +203,14 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onVot
             <div className="flex items-center gap-2">
               <h3 className={`font-bold text-lg leading-tight transition-colors ${d ? `text-white ${!isAnonymous && 'group-hover:text-cyan-400'}` : `text-slate-900 ${!isAnonymous && 'group-hover:text-red-600'}`
                 }`}>
-                {isAnonymous ? 'Anonymous' : alert.userName}
+                {isAnonymous ? t('alert.anonymous') : alert.userName}
               </h3>
               {isEmergency && <span className="relative flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
               </span>}
             </div>
-            <p className={`text-xs font-medium mt-0.5 ${d ? 'text-slate-500' : 'text-slate-400'}`}>{new Date(alert.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} • {isEmergency ? <span className="text-red-400 font-bold">Emergency</span> : 'Request'}</p>
+            <p className={`text-xs font-medium mt-0.5 ${d ? 'text-slate-500' : 'text-slate-400'}`}>{new Date(alert.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} • {isEmergency ? <span className="text-red-400 font-bold">{t('alert.label.emergency')}</span> : t('alert.label.request')}</p>
           </div>
         </div>
 
@@ -246,7 +248,7 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onVot
         <div className={`mb-5 p-5 rounded-2xl text-sm backdrop-blur-sm ${d ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-blue-50 border border-blue-100'}`}>
           <h4 className={`font-bold mb-2 flex items-center ${d ? 'text-blue-400' : 'text-blue-700'}`}>
             <svg className={`w-5 h-5 mr-2 ${d ? 'text-blue-400' : 'text-blue-600'}`} fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg>
-            AI Safety Advice
+            {t('alert.aiAdvice')}
           </h4>
           <div className={`whitespace-pre-line ${d ? 'text-blue-300/90' : 'text-blue-700/80'}`}>
             {advice}
@@ -258,7 +260,7 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onVot
         <div className={`mb-5 p-5 rounded-2xl text-sm backdrop-blur-sm ${d ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-emerald-50 border border-emerald-100'}`}>
           <h4 className={`font-bold mb-2 flex items-center ${d ? 'text-emerald-400' : 'text-emerald-700'}`}>
             <svg className={`w-5 h-5 mr-2 ${d ? 'text-emerald-400' : 'text-emerald-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-            Nearby Help Locations
+            {t('alert.nearbyLocations')}
           </h4>
           <div className={`whitespace-pre-line ${d ? 'text-emerald-300/90' : 'text-emerald-700/80'}`}>
             {nearbyPlaces}
@@ -275,7 +277,7 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onVot
             className={`flex-1 min-w-[100px] py-2.5 px-4 rounded-xl text-xs font-bold transition-all border ${d ? 'bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 border-blue-500/20' : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-100'
               }`}
           >
-            {loadingAdvice ? 'Processing...' : 'Ask AI Advice'}
+            {loadingAdvice ? t('common.processing') : t('alert.actions.askAi')}
           </button>
         )}
 
@@ -286,7 +288,7 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onVot
             className={`flex-1 min-w-[100px] py-2.5 px-4 rounded-xl text-xs font-bold transition-all border ${d ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-100'
               }`}
           >
-            {loadingPlaces ? 'Searching...' : 'Find Places'}
+            {loadingPlaces ? t('common.searching') : t('alert.actions.findPlaces')}
           </button>
         )}
 
@@ -344,7 +346,7 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onVot
                   }`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                Message
+                {t('common.sendMessage')}
               </button>
             )}
 
@@ -357,7 +359,7 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onVot
                   : (d ? 'bg-gradient-to-r from-cyan-600 to-teal-500 shadow-cyan-500/20' : 'bg-slate-900 shadow-slate-900/20')
                   }`}
               >
-                {isEmergency ? 'RESPOND NOW' : 'Offer Help'}
+                {isEmergency ? t('alert.actions.respond').toUpperCase() : t('alert.actions.respond')}
               </button>
             )}
           </>
@@ -367,7 +369,7 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onVot
           <div className={`flex-[2] py-2.5 px-4 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 backdrop-blur-sm ${d ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-100'
             }`}>
             <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-            Help on the way
+            {t('alert.status.responding')}
           </div>
         )}
       </div>
@@ -380,7 +382,7 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onVot
             }`}
         >
           <svg className={`w-4 h-4 ${d ? 'text-slate-600 group-hover/comments:text-slate-400' : 'text-slate-300 group-hover/comments:text-slate-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
-          {comments.length} Comments
+          {comments.length} {t('alert.actions.comments')}
           {showComments
             ? <svg className={`w-3 h-3 ml-1 ${d ? 'text-slate-400' : 'text-slate-300'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" /></svg>
             : <svg className={`w-3 h-3 ml-1 ${d ? 'text-slate-400' : 'text-slate-300'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
@@ -392,7 +394,7 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onVot
             {/* Comment List */}
             <div className="space-y-3 mb-4 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
               {comments.length === 0 ? (
-                <p className={`text-xs italic pl-1 ${d ? 'text-slate-400' : 'text-slate-400'}`}>No comments yet. Start the discussion.</p>
+                <p className={`text-xs italic pl-1 ${d ? 'text-slate-400' : 'text-slate-400'}`}>{t('alert.comments.empty')}</p>
               ) : (
                 comments.map(comment => (
                   <div key={comment.id} className="flex gap-3">
@@ -426,7 +428,7 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onVot
                 type="text"
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Ask for details or offer advice..."
+                placeholder={t('alert.comments.placeholder')}
                 className={`flex-1 rounded-xl px-4 py-2.5 text-xs transition-all outline-none focus:ring-2 ${d ? 'bg-white/[0.04] border border-white/[0.08] focus:bg-white/[0.08] focus:ring-cyan-500/20 focus:border-cyan-500/30 text-white placeholder:text-slate-500'
                   : 'bg-slate-50 border border-slate-200 focus:bg-white focus:ring-slate-900/10 focus:border-slate-400 text-slate-900 placeholder:text-slate-400'
                   }`}
@@ -437,7 +439,7 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onVot
                 className={`rounded-xl px-4 py-1 text-xs font-bold text-white disabled:opacity-50 transition-all ${d ? 'bg-gradient-to-r from-cyan-600 to-teal-500 hover:shadow-md hover:shadow-cyan-500/20' : 'bg-slate-900 hover:bg-slate-800'
                   }`}
               >
-                Post
+                {t('common.post')}
               </button>
             </form>
           </div>
@@ -447,11 +449,11 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onVot
       <div className={`mt-4 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider pl-2 ${d ? 'text-slate-400' : 'text-slate-400'}`}>
         <div className="flex items-center">
           <svg className="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-          Location Shared
+          {t('alert.locationShared')}
         </div>
         <div className="flex items-center gap-1">
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-          {alert.responders.length} Responding
+          {alert.responders.length} {t('alert.respondingCount')}
         </div>
       </div>
 
@@ -466,8 +468,8 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onVot
                 }`}>
                 <svg className={`w-6 h-6 ${d ? 'text-red-400' : 'text-red-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
               </div>
-              <h3 className={`text-lg font-bold mb-2 ${d ? 'text-white' : 'text-slate-900'}`}>Delete this post?</h3>
-              <p className={`text-sm mb-6 ${d ? 'text-slate-400' : 'text-slate-500'}`}>This action cannot be undone. All comments will also be removed.</p>
+              <h3 className={`text-lg font-bold mb-2 ${d ? 'text-white' : 'text-slate-900'}`}>{t('alert.deleteConfirm.title')}</h3>
+              <p className={`text-sm mb-6 ${d ? 'text-slate-400' : 'text-slate-500'}`}>{t('alert.deleteConfirm.text')}</p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
@@ -475,7 +477,7 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onVot
                   className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${d ? 'bg-white/5 text-slate-300 hover:bg-white/10 border border-white/10' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
                     }`}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={async () => {
@@ -490,7 +492,7 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onVot
                   {deleting ? (
                     <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
                   ) : (
-                    'Delete'
+                    t('common.delete')
                   )}
                 </button>
               </div>

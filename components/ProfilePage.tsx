@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import { supabase } from '../services/supabaseClient';
 import { useTheme } from './ThemeContext';
+import { useLanguage } from './LanguageContext';
 import ActivityList from './ActivityList';
 
 interface ProfilePageProps {
@@ -31,6 +32,7 @@ const processAvatarUrl = (url: string) => {
 
 const ProfilePage: React.FC<ProfilePageProps> = ({ user, isOwnProfile = false, onUpdate, onBack, onMessage, onViewAlert }) => {
     const { isDark } = useTheme();
+    const { t } = useLanguage();
     const d = isDark;
     const [activeTab, setActiveTab] = useState<'details' | 'activity'>('details');
     const [name, setName] = useState(user.name);
@@ -144,9 +146,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, isOwnProfile = false, o
             {/* Header */}
             <div className={`px-6 py-4 border-b flex justify-between items-center ${d ? 'bg-white/[0.03] border-white/[0.06]' : 'bg-slate-50 border-slate-100'
                 }`}>
-                <h2 className={`text-xl font-bold ${d ? 'text-white' : 'text-slate-900'}`}>{isOwnProfile ? 'My Profile' : 'User Profile'}</h2>
+                <h2 className={`text-xl font-bold ${d ? 'text-white' : 'text-slate-900'}`}>{isOwnProfile ? t('profile.myProfile') : t('profile.title')}</h2>
                 <button onClick={onBack} className={`text-sm font-semibold transition-colors ${d ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-900'}`}>
-                    Back
+                    {t('common.back')}
                 </button>
             </div>
 
@@ -174,7 +176,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, isOwnProfile = false, o
                         )}
                     </div>
                     <h3 className={`mt-3 text-lg font-bold ${d ? 'text-white' : 'text-slate-900'}`}>{isOwnProfile ? name : user.name}</h3>
-                    <p className={`text-xs mb-3 ${d ? 'text-slate-500' : 'text-slate-400'}`}>{isOwnProfile ? 'Manage your identity & skills' : 'Community Member'}</p>
+                    <p className={`text-xs mb-3 ${d ? 'text-slate-500' : 'text-slate-400'}`}>{isOwnProfile ? t('profile.manageIdentity') : t('profile.communityMember')}</p>
 
                     {/* Tabs */}
                     <div className="flex gap-2 mt-4 p-1 rounded-xl bg-slate-100 dark:bg-white/5 w-full max-w-xs">
@@ -185,7 +187,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, isOwnProfile = false, o
                                 : (d ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-700')
                                 }`}
                         >
-                            Details
+                            {t('profile.tabs.details')}
                         </button>
                         <button
                             onClick={() => setActiveTab('activity')}
@@ -194,14 +196,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, isOwnProfile = false, o
                                 : (d ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-700')
                                 }`}
                         >
-                            History
+                            {t('profile.tabs.history')}
                         </button>
                     </div>
 
                     {activeTab === 'activity' ? (
                         <div className="w-full mt-6 text-left">
                             <h4 className={`text-xs font-bold uppercase tracking-wider mb-3 ${d ? 'text-slate-500' : 'text-slate-400'}`}>
-                                Recent Activity
+                                {t('profile.activity.title')}
                             </h4>
                             {onViewAlert && <ActivityList userId={user.id} onViewAlert={onViewAlert} />}
                         </div>
@@ -211,7 +213,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, isOwnProfile = false, o
                             <div className="w-full mt-4">
                                 {!isOwnProfile && (
                                     <h4 className={`text-xs font-bold uppercase tracking-wider text-center mb-2 ${d ? 'text-slate-500' : 'text-slate-400'}`}>
-                                        Skills & Capabilities
+                                        {t('profile.skillsLabel')}
                                     </h4>
                                 )}
 
@@ -231,7 +233,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, isOwnProfile = false, o
                                     !isOwnProfile && (
                                         <div className={`text-center py-4 px-6 rounded-xl border border-dashed ${d ? 'bg-white/[0.03] border-white/10' : 'bg-slate-50 border-slate-200'
                                             }`}>
-                                            <p className={`text-xs italic ${d ? 'text-slate-500' : 'text-slate-400'}`}>User has not listed any specific skills yet.</p>
+                                            <p className={`text-xs italic ${d ? 'text-slate-500' : 'text-slate-400'}`}>{t('profile.noSkills')}</p>
                                         </div>
                                     )
                                 )}
@@ -245,7 +247,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, isOwnProfile = false, o
                                         }`}
                                 >
                                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                                    Send Message
+                                    {t('profile.sendMessage')}
                                 </button>
                             )}
 
@@ -261,7 +263,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, isOwnProfile = false, o
                             {isOwnProfile && (
                                 <form onSubmit={handleSave} className="space-y-6">
                                     <div>
-                                        <label className={`block text-sm font-bold mb-2 ${d ? 'text-slate-300' : 'text-slate-700'}`}>Display Name</label>
+                                        <label className={`block text-sm font-bold mb-2 ${d ? 'text-slate-300' : 'text-slate-700'}`}>{t('profile.displayName')}</label>
                                         <input
                                             type="text"
                                             value={name}
@@ -272,7 +274,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, isOwnProfile = false, o
                                     </div>
 
                                     <div>
-                                        <label className={`block text-sm font-bold mb-2 ${d ? 'text-slate-300' : 'text-slate-700'}`}>Avatar URL</label>
+                                        <label className={`block text-sm font-bold mb-2 ${d ? 'text-slate-300' : 'text-slate-700'}`}>{t('profile.avatarUrl')}</label>
                                         <div className="flex gap-2">
                                             <input
                                                 type="text"
@@ -287,23 +289,23 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, isOwnProfile = false, o
                                                 className={`px-4 py-3 rounded-xl font-semibold text-sm transition-colors border ${d ? 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/10' : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
                                                     }`}
                                             >
-                                                Random
+                                                {t('profile.random')}
                                             </button>
                                         </div>
                                         <p className={`text-[10px] mt-2 ${d ? 'text-slate-500' : 'text-slate-400'}`}>
-                                            Enter an image URL or a Google Drive sharing link.
+                                            {t('profile.avatarHelp')}
                                         </p>
                                     </div>
 
                                     <div>
-                                        <label className={`block text-sm font-bold mb-2 ${d ? 'text-slate-300' : 'text-slate-700'}`}>Skills & Certifications</label>
+                                        <label className={`block text-sm font-bold mb-2 ${d ? 'text-slate-300' : 'text-slate-700'}`}>{t('profile.skillsLabel')}</label>
                                         <textarea
                                             value={skillsInput}
                                             onChange={(e) => setSkillsInput(e.target.value)}
                                             className={`w-full px-4 py-3 rounded-xl border outline-none transition-all min-h-[120px] focus:ring-2 ${inputClass}`}
-                                            placeholder="E.g. CPR Certified, Mechanic, Fire Safety Training..."
+                                            placeholder={t('profile.skillsPlaceholder')}
                                         />
-                                        <p className={`text-xs mt-2 ${d ? 'text-slate-500' : 'text-slate-400'}`}>Separate multiple skills with commas. These will be displayed as badges on your profile.</p>
+                                        <p className={`text-xs mt-2 ${d ? 'text-slate-500' : 'text-slate-400'}`}>{t('profile.skillsHelp')}</p>
                                     </div>
 
                                     <button
@@ -312,7 +314,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, isOwnProfile = false, o
                                         className={`w-full py-4 text-white rounded-xl font-bold shadow-lg hover:scale-[1.02] transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center ${d ? 'bg-gradient-to-r from-cyan-600 to-teal-500 shadow-cyan-500/20 hover:shadow-cyan-500/30' : 'bg-slate-900 shadow-slate-900/20 hover:bg-slate-800'
                                             }`}
                                     >
-                                        {loading ? 'Saving...' : 'Save Changes'}
+                                        {loading ? t('common.saving') : t('profile.saveChanges')}
                                     </button>
                                 </form>
                             )}

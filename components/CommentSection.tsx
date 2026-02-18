@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { User, AlertComment } from '../types';
 import { supabase } from '../services/supabaseClient';
 import { useTheme } from './ThemeContext';
+import { useLanguage } from './LanguageContext';
 
 interface CommentSectionProps {
     alertId: string;
@@ -22,6 +23,7 @@ const mapComment = (c: any): AlertComment => ({
 
 const CommentSection: React.FC<CommentSectionProps> = ({ alertId, alertOwnerId, currentUser }) => {
     const { isDark } = useTheme();
+    const { t } = useLanguage();
     const d = isDark;
     const [comments, setComments] = useState<AlertComment[]>([]);
     const [newComment, setNewComment] = useState('');
@@ -123,13 +125,13 @@ const CommentSection: React.FC<CommentSectionProps> = ({ alertId, alertOwnerId, 
 
     return (
         <div className={`mt-4 pt-4 border-t ${d ? 'border-white/10' : 'border-slate-100'}`}>
-            <h3 className={`text-sm font-bold mb-4 ${d ? 'text-white' : 'text-slate-800'}`}>Comments</h3>
+            <h3 className={`text-sm font-bold mb-4 ${d ? 'text-white' : 'text-slate-800'}`}>{t('alert.actions.comments')}</h3>
 
             <div className="space-y-4 mb-4">
                 {loading ? (
-                    <div className={`text-center text-xs ${d ? 'text-slate-500' : 'text-slate-400'}`}>Loading comments...</div>
+                    <div className={`text-center text-xs ${d ? 'text-slate-500' : 'text-slate-400'}`}>{t('alert.comments.loading')}</div>
                 ) : comments.length === 0 ? (
-                    <div className={`text-center py-4 text-xs ${d ? 'text-slate-500' : 'text-slate-400'}`}>No comments yet. Be the first to share!</div>
+                    <div className={`text-center py-4 text-xs ${d ? 'text-slate-500' : 'text-slate-400'}`}>{t('alert.comments.emptyShare')}</div>
                 ) : (
                     comments.map(comment => {
                         const isOwner = currentUser && (currentUser.id === comment.userId || currentUser.id === alertOwnerId);
@@ -161,7 +163,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({ alertId, alertOwnerId, 
                                             onClick={() => handleDeleteComment(comment.id)}
                                             className="text-[10px] text-red-500 hover:underline mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
                                         >
-                                            Remove
+                                            {t('common.remove')}
                                         </button>
                                     )}
                                 </div>
@@ -181,7 +183,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({ alertId, alertOwnerId, 
                         // Need to fix.
                         // Actually, in the code content I wrote `onChange={(e) => setNewComment(e.target.value)}`.
                         // Ah, looking at the block above, I wrote `const [newComment, setNewComment] = useState('');`
-                        placeholder="Write a comment..."
+                        placeholder={t('alert.comments.placeholder')}
                         className={`flex-1 px-3 py-2 rounded-xl text-sm outline-none transition-all ${d ? 'bg-white/5 border border-white/10 focus:border-cyan-500/50 text-white placeholder:text-slate-500'
                             : 'bg-white border border-slate-200 focus:border-cyan-500 text-slate-800 placeholder:text-slate-400'
                             }`}
@@ -193,7 +195,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({ alertId, alertOwnerId, 
                             : 'bg-slate-900 hover:bg-slate-800 disabled:opacity-50'
                             }`}
                     >
-                        Post
+                        {t('common.post')}
                     </button>
                 </form>
             )}

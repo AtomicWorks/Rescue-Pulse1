@@ -3,6 +3,7 @@ import { EmergencyAlert, User } from '../types';
 import AlertCard from './AlertCard';
 import CommentSection from './CommentSection';
 import { useTheme } from './ThemeContext';
+import { useLanguage } from './LanguageContext';
 
 interface AlertDetailViewProps {
     alert: EmergencyAlert;
@@ -19,6 +20,7 @@ const AlertDetailView: React.FC<AlertDetailViewProps> = ({
     alert, currentUser, onBack, onVote, onRespond, onDelete, onMessage, onViewProfile
 }) => {
     const { isDark } = useTheme();
+    const { t } = useLanguage();
     const d = isDark;
 
     return (
@@ -28,7 +30,7 @@ const AlertDetailView: React.FC<AlertDetailViewProps> = ({
                 <button onClick={onBack} className={`p-2 rounded-full transition-colors ${d ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}>
                     <svg className={`w-5 h-5 ${d ? 'text-slate-400' : 'text-slate-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
                 </button>
-                <h2 className={`font-bold text-lg ${d ? 'text-white' : 'text-slate-900'}`}>Thread</h2>
+                <h2 className={`font-bold text-lg ${d ? 'text-white' : 'text-slate-900'}`}>{t('alert.thread')}</h2>
             </div>
 
             <div className="p-4 max-w-2xl mx-auto w-full">
