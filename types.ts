@@ -41,10 +41,19 @@ export interface ChatMessage {
   sender_id: string;
   sender_name: string;
   sender_avatar?: string;
-  receiver_id: string;
-  content: string;
-  created_at: string;
+  message: string;
+  timestamp: number;
   is_read: boolean;
+}
+
+export interface AlertMessage {
+  id: string;
+  alert_id: string;
+  user_id: string;
+  user_name: string;
+  user_avatar?: string;
+  message: string;
+  created_at: string;
 }
 
 export interface AlertComment {

@@ -68,6 +68,17 @@ create table if not exists public.votes (
   unique(alert_id, user_id)
 );
 
+-- Alert Group Messages Table
+create table if not exists public.alert_messages (
+  id uuid default gen_random_uuid() primary key,
+  alert_id uuid references public.alerts(id) on delete cascade not null,
+  user_id uuid references public.profiles(id) not null,
+  user_name text not null,
+  user_avatar text,
+  message text not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
 -- Add vote_score and upvote_count columns
 do $$
 begin
@@ -85,6 +96,7 @@ alter table public.messages enable row level security;
 alter table public.comments enable row level security;
 alter table public.profiles enable row level security;
 alter table public.votes enable row level security;
+alter table public.alert_messages enable row level security;
 
 -- Drop existing policies to ensure clean state and avoid conflicts
 drop policy if exists "Everyone can read alerts" on public.alerts;
@@ -111,6 +123,9 @@ drop policy if exists "Everyone can read votes" on public.votes;
 drop policy if exists "Authenticated users can vote" on public.votes;
 drop policy if exists "Users can update their vote" on public.votes;
 drop policy if exists "Users can remove their vote" on public.votes;
+
+drop policy if exists "Alert owner and responders can view" on public.alert_messages;
+drop policy if exists "Alert owner and responders can insert" on public.alert_messages;
 
 -- Alerts Policies
 create policy "Everyone can read alerts" 
@@ -202,6 +217,35 @@ create policy "Users can remove their vote"
 on public.votes for delete 
 using (auth.uid() = user_id);
 
+-- Alert Messages Policies
+create policy "Alert owner and responders can view" 
+on public.alert_messages for select 
+using (
+  exists (
+    select 1 from public.alerts a
+    where a.id = alert_messages.alert_id
+    and (
+      a.user_id = auth.uid() 
+      or 
+      a.responders @> jsonb_build_array(auth.uid()::text)
+    )
+  )
+);
+
+create policy "Alert owner and responders can insert" 
+on public.alert_messages for insert 
+with check (
+  exists (
+    select 1 from public.alerts a
+    where a.id = alert_messages.alert_id
+    and (
+      a.user_id = auth.uid() 
+      or 
+      a.responders @> jsonb_build_array(auth.uid()::text)
+    )
+  )
+);
+
 -- CRITICAL: Enable Realtime
 do $$
 begin
@@ -243,6 +287,16 @@ begin
     and tablename = 'votes'
   ) then
     alter publication supabase_realtime add table public.votes;
+  end if;
+
+  -- Alert Messages Realtime
+  if not exists (
+    select 1 from pg_publication_tables 
+    where pubname = 'supabase_realtime' 
+    and schemaname = 'public' 
+    and tablename = 'alert_messages'
+  ) then
+    alter publication supabase_realtime add table public.alert_messages;
   end if;
 end $$;
 
