@@ -31,6 +31,8 @@ export interface EmergencyAlert {
   severity: SeverityLevel;
   isEmergency: boolean;
   isAnonymous?: boolean;
+  verificationCount?: number;
+  isVerified?: boolean;
 }
 
 export interface ChatMessage {

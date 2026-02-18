@@ -9,12 +9,13 @@ interface AlertCardProps {
   alert: EmergencyAlert;
   onRespond: (alertId: string) => void;
   onDelete?: (alertId: string) => void;
+  onVerify?: (alertId: string, isVerified: boolean) => void;
   onMessage?: (userId: string, userName: string, userAvatar?: string) => void;
   onViewProfile?: (userId: string) => void;
   currentUser: User | null;
 }
 
-const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onMessage, onViewProfile, currentUser }) => {
+const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onVerify, onMessage, onViewProfile, currentUser }) => {
   const { isDark } = useTheme();
   const d = isDark;
   const [advice, setAdvice] = useState<string | null>(null);
@@ -290,6 +291,29 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onMes
 
         {!isCurrentUser && (
           <>
+            {/* Verify Button */}
+            {onVerify && (
+              <button
+                onClick={() => onVerify(alert.id, !!alert.isVerified)}
+                className={`flex-1 min-w-[100px] py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 border ${alert.isVerified
+                    ? (d ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-emerald-100 text-emerald-700 border-emerald-200')
+                    : (d ? 'bg-white/5 text-slate-400 hover:bg-white/10 border-white/10' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border-slate-200')
+                  }`}
+              >
+                <svg className="w-4 h-4" fill={alert.isVerified ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                {alert.isVerified ? 'Verified' : 'Verify'}
+                {(alert.verificationCount || 0) > 0 && (
+                  <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[9px] ${alert.isVerified
+                      ? (d ? 'bg-emerald-500/20' : 'bg-white/50')
+                      : (d ? 'bg-white/10' : 'bg-slate-200')
+                    }`}>
+                    {alert.verificationCount}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {/* Message Button */}
             {onMessage && !isAnonymous && (
               <button
                 onClick={() => onMessage(alert.userId, alert.userName, alert.userAvatar)}
@@ -301,6 +325,7 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onMes
               </button>
             )}
 
+            {/* Respond Button */}
             {alert.status !== 'responding' && (
               <button
                 onClick={() => onRespond(alert.id)}
@@ -408,47 +433,49 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onMes
       </div>
 
       {/* Delete Confirmation Dialog */}
-      {showDeleteConfirm && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center rounded-3xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-          <div className={`absolute inset-0 ${d ? 'bg-[#0A0E1A]/80' : 'bg-white/80'} backdrop-blur-sm`}></div>
-          <div className={`relative z-10 p-6 sm:p-8 rounded-2xl shadow-2xl max-w-[90%] sm:max-w-xs w-full text-center ${d ? 'bg-[#141824] border border-white/10 shadow-black/40' : 'bg-white border border-slate-200 shadow-slate-200/50'
-            }`}>
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${d ? 'bg-red-500/15 border border-red-500/20' : 'bg-red-50 border border-red-100'
+      {
+        showDeleteConfirm && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center rounded-3xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className={`absolute inset-0 ${d ? 'bg-[#0A0E1A]/80' : 'bg-white/80'} backdrop-blur-sm`}></div>
+            <div className={`relative z-10 p-6 sm:p-8 rounded-2xl shadow-2xl max-w-[90%] sm:max-w-xs w-full text-center ${d ? 'bg-[#141824] border border-white/10 shadow-black/40' : 'bg-white border border-slate-200 shadow-slate-200/50'
               }`}>
-              <svg className={`w-6 h-6 ${d ? 'text-red-400' : 'text-red-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-            </div>
-            <h3 className={`text-lg font-bold mb-2 ${d ? 'text-white' : 'text-slate-900'}`}>Delete this post?</h3>
-            <p className={`text-sm mb-6 ${d ? 'text-slate-400' : 'text-slate-500'}`}>This action cannot be undone. All comments will also be removed.</p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                disabled={deleting}
-                className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${d ? 'bg-white/5 text-slate-300 hover:bg-white/10 border border-white/10' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
-                  }`}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  setDeleting(true);
-                  if (onDelete) await onDelete(alert.id);
-                  setDeleting(false);
-                  setShowDeleteConfirm(false);
-                }}
-                disabled={deleting}
-                className="flex-1 py-3 rounded-xl font-bold text-sm text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20 transition-all disabled:opacity-70 flex items-center justify-center gap-2"
-              >
-                {deleting ? (
-                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-                ) : (
-                  'Delete'
-                )}
-              </button>
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${d ? 'bg-red-500/15 border border-red-500/20' : 'bg-red-50 border border-red-100'
+                }`}>
+                <svg className={`w-6 h-6 ${d ? 'text-red-400' : 'text-red-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              </div>
+              <h3 className={`text-lg font-bold mb-2 ${d ? 'text-white' : 'text-slate-900'}`}>Delete this post?</h3>
+              <p className={`text-sm mb-6 ${d ? 'text-slate-400' : 'text-slate-500'}`}>This action cannot be undone. All comments will also be removed.</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={deleting}
+                  className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${d ? 'bg-white/5 text-slate-300 hover:bg-white/10 border border-white/10' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
+                    }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    setDeleting(true);
+                    if (onDelete) await onDelete(alert.id);
+                    setDeleting(false);
+                    setShowDeleteConfirm(false);
+                  }}
+                  disabled={deleting}
+                  className="flex-1 py-3 rounded-xl font-bold text-sm text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20 transition-all disabled:opacity-70 flex items-center justify-center gap-2"
+                >
+                  {deleting ? (
+                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                  ) : (
+                    'Delete'
+                  )}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };
 

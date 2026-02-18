@@ -134,6 +134,20 @@ const AppContent: React.FC = () => {
       }
 
       setDbError(false);
+
+      // Fetch user's verifications if logged in
+      let userVerifications = new Set<string>();
+      if (user) {
+        const { data: verifications } = await supabase
+          .from('verifications')
+          .select('alert_id')
+          .eq('user_id', user.id);
+
+        if (verifications) {
+          userVerifications = new Set(verifications.map(v => v.alert_id));
+        }
+      }
+
       const mappedAlerts: EmergencyAlert[] = data.map(a => ({
         id: a.id,
         userId: a.user_id,
@@ -147,7 +161,9 @@ const AppContent: React.FC = () => {
         responders: a.responders || [],
         severity: a.severity || 'Medium',
         isEmergency: a.is_emergency !== false,
-        isAnonymous: a.is_anonymous === true
+        isAnonymous: a.is_anonymous === true,
+        verificationCount: a.verification_count || 0,
+        isVerified: userVerifications.has(a.id)
       }));
       setAlerts(mappedAlerts);
 
@@ -209,7 +225,9 @@ const AppContent: React.FC = () => {
                   responders: updated.responders || [],
                   severity: updated.severity,
                   isEmergency: updated.is_emergency !== false,
-                  isAnonymous: updated.is_anonymous === true
+                  isAnonymous: updated.is_anonymous === true,
+                  verificationCount: updated.verification_count || 0,
+                  isVerified: a.isVerified // Keep local verified state
                 };
               }
               return a;
@@ -436,6 +454,38 @@ const AppContent: React.FC = () => {
   const handleCreatePost = useCallback(async (category: HelpCategory, description: string, severity: SeverityLevel, isAnonymous: boolean) => {
     await broadcastAlertOrPost(category, description, false, severity, isAnonymous);
   }, [user, userLocation]);
+
+  const handleVerifyAlert = async (alertId: string, isVerified: boolean) => {
+    if (!user) return;
+
+    // Optimistic Update
+    setAlerts(prev => prev.map(a => {
+      if (a.id === alertId) {
+        return {
+          ...a,
+          isVerified: !isVerified,
+          verificationCount: (a.verificationCount || 0) + (!isVerified ? 1 : -1)
+        };
+      }
+      return a;
+    }));
+
+    if (!isVerified) {
+      // Verify
+      const { error } = await supabase.from('verifications').insert({
+        alert_id: alertId,
+        user_id: user.id
+      });
+      if (error) console.error("Verify failed:", error);
+    } else {
+      // Unverify
+      const { error } = await supabase.from('verifications').delete().match({
+        alert_id: alertId,
+        user_id: user.id
+      });
+      if (error) console.error("Unverify failed:", error);
+    }
+  };
 
   const handleRespond = async (alertId: string) => {
     if (!user) return;
@@ -769,6 +819,7 @@ const AppContent: React.FC = () => {
                   alert={alert}
                   onRespond={handleRespond}
                   onDelete={handleDeleteAlert}
+                  onVerify={handleVerifyAlert}
                   onMessage={handleStartChat}
                   onViewProfile={handleViewProfile}
                   currentUser={user}
@@ -797,6 +848,7 @@ const AppContent: React.FC = () => {
                   alert={alert}
                   onRespond={handleRespond}
                   onDelete={handleDeleteAlert}
+                  onVerify={handleVerifyAlert}
                   onMessage={handleStartChat}
                   onViewProfile={handleViewProfile}
                   currentUser={user}
