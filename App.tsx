@@ -13,6 +13,18 @@ import { ThemeProvider, useTheme } from './components/ThemeContext';
 import { EmergencyAlert, User, Location, HelpCategory, SeverityLevel } from './types';
 import { supabase } from './services/supabaseClient';
 
+// Haversine formula to calculate distance between two geographic coordinates
+const getDistanceKm = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+  const R = 6371; // Earth radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 const AppContent: React.FC = () => {
   const { isDark, toggleTheme } = useTheme();
   const [user, setUser] = useState<User | null>(null);
@@ -24,6 +36,10 @@ const AppContent: React.FC = () => {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [dbError, setDbError] = useState<boolean>(false);
+  const [radiusKm, setRadiusKm] = useState<number>(() => {
+    const saved = localStorage.getItem('rescuepulse_radius');
+    return saved ? Number(saved) : 0; // 0 = show all
+  });
 
   // Chat State
   const [chatPartner, setChatPartner] = useState<{ id: string; name: string; avatar?: string } | null>(null);
@@ -528,7 +544,10 @@ const AppContent: React.FC = () => {
     );
   }
 
-  const nearbyAlerts = alerts.filter(a => a.userId !== user?.id);
+  const allNearbyAlerts = alerts.filter(a => a.userId !== user?.id);
+  const nearbyAlerts = radiusKm > 0 && userLocation
+    ? allNearbyAlerts.filter(a => getDistanceKm(userLocation.lat, userLocation.lng, a.location.lat, a.location.lng) <= radiusKm)
+    : allNearbyAlerts;
   const myAlerts = alerts.filter(a => a.userId === user?.id);
 
   const isHomeView = view === 'feed' || view === 'map' || view === 'my_requests';
@@ -641,6 +660,33 @@ const AppContent: React.FC = () => {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
               Request Help
             </button>
+          </div>
+        )}
+
+        {/* Radius Filter - only on feed tab */}
+        {view === 'feed' && (
+          <div className={`flex items-center gap-2 flex-wrap ${d ? '' : ''}`}>
+            <div className={`flex items-center gap-1.5 mr-1 ${d ? 'text-slate-500' : 'text-slate-400'}`}>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              <span className="text-xs font-bold">Radius:</span>
+            </div>
+            {[{ label: 'All', value: 0 }, { label: '1 km', value: 1 }, { label: '5 km', value: 5 }, { label: '10 km', value: 10 }, { label: '25 km', value: 25 }, { label: '50 km', value: 50 }].map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => { setRadiusKm(opt.value); localStorage.setItem('rescuepulse_radius', String(opt.value)); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${radiusKm === opt.value
+                    ? (d ? 'bg-cyan-500/20 text-cyan-400 ring-1 ring-cyan-500/30' : 'bg-slate-900 text-white shadow-sm')
+                    : (d ? 'text-slate-400 hover:bg-white/[0.06] hover:text-white' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900')
+                  }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+            {radiusKm > 0 && (
+              <span className={`text-[10px] font-medium ml-auto ${d ? 'text-slate-500' : 'text-slate-400'}`}>
+                {nearbyAlerts.length}/{allNearbyAlerts.length} alerts
+              </span>
+            )}
           </div>
         )}
 
