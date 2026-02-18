@@ -69,6 +69,7 @@ drop policy if exists "Everyone can read alerts" on public.alerts;
 drop policy if exists "Authenticated users can insert alerts" on public.alerts;
 drop policy if exists "Authenticated users can update alerts" on public.alerts;
 drop policy if exists "Users can update their own alerts" on public.alerts;
+drop policy if exists "Users can delete their own alerts" on public.alerts;
 
 drop policy if exists "Users can read their own messages" on public.messages;
 drop policy if exists "Users can send messages" on public.messages;
@@ -77,6 +78,8 @@ drop policy if exists "Users can update their own messages" on public.messages;
 drop policy if exists "Everyone can read comments" on public.comments;
 drop policy if exists "Authenticated users can insert comments" on public.comments;
 drop policy if exists "Users can update their own comments" on public.comments;
+drop policy if exists "Users can delete their own comments" on public.comments;
+drop policy if exists "Alert owner can delete comments" on public.comments;
 
 drop policy if exists "Public profiles are viewable by everyone" on public.profiles;
 drop policy if exists "Users can insert their own profile" on public.profiles;
@@ -94,6 +97,10 @@ with check (auth.role() = 'authenticated');
 -- Key Policy for updating name on posts
 create policy "Users can update their own alerts" 
 on public.alerts for update 
+using (auth.uid() = user_id);
+
+create policy "Users can delete their own alerts" 
+on public.alerts for delete 
 using (auth.uid() = user_id);
 
 -- Messages Policies
@@ -123,6 +130,20 @@ with check (auth.role() = 'authenticated');
 create policy "Users can update their own comments" 
 on public.comments for update 
 using (auth.uid() = user_id);
+
+create policy "Users can delete their own comments" 
+on public.comments for delete 
+using (auth.uid() = user_id);
+
+create policy "Alert owner can delete comments" 
+on public.comments for delete 
+using (
+  exists (
+    select 1 from public.alerts 
+    where alerts.id = comments.alert_id 
+    and alerts.user_id = auth.uid()
+  )
+);
 
 -- Profiles Policies
 create policy "Public profiles are viewable by everyone" 

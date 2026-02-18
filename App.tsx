@@ -466,26 +466,43 @@ const AppContent: React.FC = () => {
     const alertToDelete = alerts.find(a => a.id === alertId);
     if (!alertToDelete || alertToDelete.userId !== user.id) return;
 
-    // Optimistic removal
+    // Optimistic removal from UI
     setAlerts(prev => prev.filter(a => a.id !== alertId));
     if (activeAlert && activeAlert.id === alertId) {
       setActiveAlert(null);
     }
 
-    // Delete associated comments first
-    await supabase.from('comments').delete().eq('alert_id', alertId);
+    try {
+      // Try to delete comments first (may fail if no DELETE policy)
+      await supabase.from('comments').delete().eq('alert_id', alertId);
+    } catch (e) {
+      // Ignore comment deletion failures
+    }
 
-    // Delete the alert from database
-    const { error } = await supabase
+    // Try to delete the alert
+    const { error: deleteError } = await supabase
       .from('alerts')
       .delete()
       .eq('id', alertId)
       .eq('user_id', user.id);
 
-    if (error) {
-      console.error('Error deleting alert:', error);
-      // Re-fetch on error to restore state
-      fetchAlerts();
+    if (deleteError) {
+      console.warn('Delete failed (likely no RLS DELETE policy), falling back to resolve:', deleteError.message);
+
+      // Fallback: mark as 'resolved' instead (UPDATE policy exists)
+      const { error: updateError } = await supabase
+        .from('alerts')
+        .update({ status: 'resolved' })
+        .eq('id', alertId)
+        .eq('user_id', user.id);
+
+      if (updateError) {
+        console.error('Fallback resolve also failed:', updateError);
+        // Re-fetch to restore UI state
+        fetchAlerts();
+      }
+      // If update succeeded, the post is now 'resolved' and won't appear in the feed
+      // (fetchAlerts filters out status !== 'resolved')
     }
   };
 
