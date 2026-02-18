@@ -1,0 +1,8 @@
+{
+  "name": "RescuePulse - Community Response Network",
+  "description": "A rapid-response emergency alarm system where neighbors help neighbors. Users can broadcast emergency alerts with location data and community members can respond to provide immediate assistance.",
+  "requestFramePermissions": [
+    "geolocation",
+    "camera"
+  ]
+}
