@@ -663,30 +663,39 @@ const AppContent: React.FC = () => {
           </div>
         )}
 
-        {/* Radius Filter - only on feed tab */}
+        {/* Radius Filter Slider - only on feed tab */}
         {view === 'feed' && (
-          <div className={`flex items-center gap-2 flex-wrap ${d ? '' : ''}`}>
-            <div className={`flex items-center gap-1.5 mr-1 ${d ? 'text-slate-500' : 'text-slate-400'}`}>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-              <span className="text-xs font-bold">Radius:</span>
+          <div className={`rounded-2xl p-3 sm:p-4 theme-transition ${d ? 'glass-light' : 'bg-white border border-slate-100 shadow-sm'}`}>
+            <div className="flex items-center justify-between mb-2">
+              <div className={`flex items-center gap-1.5 ${d ? 'text-slate-400' : 'text-slate-500'}`}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                <span className="text-xs font-bold">Radius</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-sm font-bold ${d ? 'text-cyan-400' : 'text-slate-900'}`}>
+                  {radiusKm === 0 ? 'All distances' : `${radiusKm} km`}
+                </span>
+                {radiusKm > 0 && (
+                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${d ? 'bg-cyan-500/15 text-cyan-400' : 'bg-slate-100 text-slate-500'}`}>
+                    {nearbyAlerts.length}/{allNearbyAlerts.length}
+                  </span>
+                )}
+              </div>
             </div>
-            {[{ label: 'All', value: 0 }, { label: '1 km', value: 1 }, { label: '5 km', value: 5 }, { label: '10 km', value: 10 }, { label: '25 km', value: 25 }, { label: '50 km', value: 50 }].map(opt => (
-              <button
-                key={opt.value}
-                onClick={() => { setRadiusKm(opt.value); localStorage.setItem('rescuepulse_radius', String(opt.value)); }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${radiusKm === opt.value
-                    ? (d ? 'bg-cyan-500/20 text-cyan-400 ring-1 ring-cyan-500/30' : 'bg-slate-900 text-white shadow-sm')
-                    : (d ? 'text-slate-400 hover:bg-white/[0.06] hover:text-white' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900')
-                  }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-            {radiusKm > 0 && (
-              <span className={`text-[10px] font-medium ml-auto ${d ? 'text-slate-500' : 'text-slate-400'}`}>
-                {nearbyAlerts.length}/{allNearbyAlerts.length} alerts
-              </span>
-            )}
+            <input
+              type="range"
+              min="0"
+              max="50"
+              step="1"
+              value={radiusKm}
+              onChange={(e) => { const v = Number(e.target.value); setRadiusKm(v); localStorage.setItem('rescuepulse_radius', String(v)); }}
+              className="radius-slider w-full"
+            />
+            <div className="flex justify-between mt-1">
+              {['All', '10', '20', '30', '40', '50'].map((label, i) => (
+                <span key={i} className={`text-[9px] font-medium ${d ? 'text-slate-600' : 'text-slate-300'}`}>{label === 'All' ? label : `${label}km`}</span>
+              ))}
+            </div>
           </div>
         )}
 

@@ -196,6 +196,65 @@
         .theme-transition {
             transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
         }
+
+        /* Custom Range Slider Styling */
+        .radius-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 5px;
+            background: #cbd5e1;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+            margin: 10px 0;
+        }
+
+        html.dark .radius-slider {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .radius-slider:hover {
+            opacity: 1;
+        }
+
+        .radius-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #0f172a;
+            cursor: pointer;
+            box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.1);
+            transition: all 0.2s ease;
+        }
+
+        html.dark .radius-slider::-webkit-slider-thumb {
+            background: #06b6d4;
+            /* cyan-500 */
+            box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.2);
+        }
+
+        .radius-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+
+        .radius-slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #0f172a;
+            cursor: pointer;
+            box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.1);
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        html.dark .radius-slider::-moz-range-thumb {
+            background: #06b6d4;
+            box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.2);
+        }
     </style>
 
 </head>
