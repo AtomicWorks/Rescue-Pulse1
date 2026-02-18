@@ -68,18 +68,10 @@ create table if not exists public.votes (
   unique(alert_id, user_id)
 );
 
--- Alert Group Messages Table
-create table if not exists public.alert_messages (
-  id uuid default gen_random_uuid() primary key,
-  alert_id uuid references public.alerts(id) on delete cascade not null,
-  user_id uuid references public.profiles(id) not null,
-  user_name text not null,
-  user_avatar text,
-  message text not null,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
-);
+-- Add comment_count and remove alert_messages if exists
+drop table if exists public.alert_messages;
 
--- Add vote_score and upvote_count columns
+-- Add vote_score, upvote_count, comment_count columns
 do $$
 begin
   if not exists (select 1 from information_schema.columns where table_name='alerts' and column_name='vote_score') then
@@ -87,6 +79,9 @@ begin
   end if;
   if not exists (select 1 from information_schema.columns where table_name='alerts' and column_name='upvote_count') then
     alter table public.alerts add column upvote_count integer default 0;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='alerts' and column_name='comment_count') then
+    alter table public.alerts add column comment_count integer default 0;
   end if;
 end $$;
 
@@ -217,19 +212,6 @@ create policy "Users can remove their vote"
 on public.votes for delete 
 using (auth.uid() = user_id);
 
--- Alert Messages Policies
-create policy "Alert owner and responders can view" 
-on public.alert_messages for select 
-using (
-  exists (
-    select 1 from public.alerts a
-    where a.id = alert_messages.alert_id
-    and (
-      a.user_id = auth.uid() 
-      or 
-      a.responders @> jsonb_build_array(auth.uid()::text)
-    )
-  )
 );
 
 create policy "Alert owner and responders can insert" 
@@ -329,6 +311,26 @@ begin
   return null;
 end;
 $$ language plpgsql;
+
+-- Trigger to maintain comment_count
+create or replace function public.update_comment_count()
+returns trigger as $$
+begin
+  if (TG_OP = 'INSERT') then
+    update public.alerts set comment_count = comment_count + 1 where id = NEW.alert_id;
+    return NEW;
+  elsif (TG_OP = 'DELETE') then
+    update public.alerts set comment_count = comment_count - 1 where id = OLD.alert_id;
+    return OLD;
+  end if;
+  return null;
+end;
+$$ language plpgsql;
+
+drop trigger if exists on_comment_change on public.comments;
+create trigger on_comment_change
+after insert or delete on public.comments
+for each row execute function public.update_comment_count();
 
 drop trigger if exists on_vote_change on public.votes;
 create trigger on_vote_change

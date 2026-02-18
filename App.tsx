@@ -8,7 +8,7 @@ import Auth from './components/Auth';
 import ProfilePage from './components/ProfilePage';
 import ChatList from './components/ChatList';
 import ChatView from './components/ChatView';
-import GroupChatView from './components/GroupChatView';
+import AlertDetailView from './components/AlertDetailView';
 import AIChatBot from './components/AIChatBot';
 import { ThemeProvider, useTheme } from './components/ThemeContext';
 import { EmergencyAlert, User, Location, HelpCategory, SeverityLevel } from './types';
@@ -30,7 +30,8 @@ const AppContent: React.FC = () => {
   const { isDark, toggleTheme } = useTheme();
   const [user, setUser] = useState<User | null>(null);
   const [alerts, setAlerts] = useState<EmergencyAlert[]>([]);
-  const [view, setView] = useState<'feed' | 'map' | 'profile' | 'user_profile' | 'messages' | 'chat' | 'my_requests' | 'group_chat'>('feed');
+  const [view, setView] = useState<'feed' | 'map' | 'profile' | 'user_profile' | 'messages' | 'chat' | 'my_requests' | 'alert_detail'>('feed');
+  const [previousView, setPreviousView] = useState<'feed' | 'my_requests'>('feed');
   const [activeAlert, setActiveAlert] = useState<EmergencyAlert | null>(null);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<Location | null>(null);
@@ -44,7 +45,7 @@ const AppContent: React.FC = () => {
 
   // Chat State
   const [chatPartner, setChatPartner] = useState<{ id: string; name: string; avatar?: string } | null>(null);
-  const [activeChatAlert, setActiveChatAlert] = useState<{ id: string; title: string } | null>(null);
+  const [activeDetailAlert, setActiveDetailAlert] = useState<EmergencyAlert | null>(null);
   // Profile Viewing State
   const [viewingUser, setViewingUser] = useState<User | null>(null);
 
@@ -312,9 +313,15 @@ const AppContent: React.FC = () => {
     ));
   };
 
-  const handleOpenGroupChat = (alertId: string, alertTitle: string) => {
-    setActiveChatAlert({ id: alertId, title: alertTitle });
-    setView('group_chat');
+  const handleViewComments = (alertId: string) => {
+    const alert = alerts.find(a => a.id === alertId);
+    if (alert) {
+      setActiveDetailAlert(alert);
+      if (view === 'feed' || view === 'my_requests') {
+        setPreviousView(view);
+      }
+      setView('alert_detail');
+    }
   };
 
   const handleStartChat = (userId: string, userName: string, userAvatar?: string) => {
@@ -879,7 +886,7 @@ const AppContent: React.FC = () => {
                   onRespond={handleRespond}
                   onDelete={handleDeleteAlert}
                   onVote={handleVote}
-                  onGroupChat={handleOpenGroupChat}
+                  onComments={handleViewComments}
                   onMessage={handleStartChat}
                   onViewProfile={handleViewProfile}
                   currentUser={user}
@@ -909,7 +916,7 @@ const AppContent: React.FC = () => {
                   onRespond={handleRespond}
                   onDelete={handleDeleteAlert}
                   onVote={handleVote}
-                  onGroupChat={handleOpenGroupChat}
+                  onComments={handleViewComments}
                   onMessage={handleStartChat}
                   onViewProfile={handleViewProfile}
                   currentUser={user}
@@ -957,12 +964,16 @@ const AppContent: React.FC = () => {
           />
         )}
 
-        {view === 'group_chat' && user && activeChatAlert && (
-          <GroupChatView
+        {view === 'alert_detail' && activeDetailAlert && (
+          <AlertDetailView
+            alert={activeDetailAlert}
             currentUser={user}
-            alertId={activeChatAlert.id}
-            alertTitle={activeChatAlert.title}
-            onBack={() => setView('feed')}
+            onBack={() => setView(previousView)}
+            onVote={handleVote}
+            onRespond={handleRespond}
+            onDelete={handleDeleteAlert}
+            onMessage={handleStartChat}
+            onViewProfile={handleViewProfile}
           />
         )}
 
