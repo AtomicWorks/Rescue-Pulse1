@@ -68,11 +68,14 @@ create table if not exists public.votes (
   unique(alert_id, user_id)
 );
 
--- Add vote_score to alerts if it doesn't exist
+-- Add vote_score and upvote_count columns
 do $$
 begin
   if not exists (select 1 from information_schema.columns where table_name='alerts' and column_name='vote_score') then
     alter table public.alerts add column vote_score integer default 0;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='alerts' and column_name='upvote_count') then
+    alter table public.alerts add column upvote_count integer default 0;
   end if;
 end $$;
 
@@ -243,23 +246,29 @@ begin
   end if;
 end $$;
 
--- Trigger to maintain vote_score
+-- Trigger to maintain vote_score and upvote_count
 create or replace function public.update_vote_score()
 returns trigger as $$
 begin
   if (TG_OP = 'INSERT') then
     update public.alerts 
-    set vote_score = vote_score + NEW.vote_type
+    set 
+      vote_score = vote_score + NEW.vote_type,
+      upvote_count = upvote_count + (CASE WHEN NEW.vote_type = 1 THEN 1 ELSE 0 END)
     where id = NEW.alert_id;
     return NEW;
   elsif (TG_OP = 'UPDATE') then
     update public.alerts 
-    set vote_score = vote_score - OLD.vote_type + NEW.vote_type
+    set 
+      vote_score = vote_score - OLD.vote_type + NEW.vote_type,
+      upvote_count = upvote_count - (CASE WHEN OLD.vote_type = 1 THEN 1 ELSE 0 END) + (CASE WHEN NEW.vote_type = 1 THEN 1 ELSE 0 END)
     where id = NEW.alert_id;
     return NEW;
   elsif (TG_OP = 'DELETE') then
     update public.alerts 
-    set vote_score = vote_score - OLD.vote_type
+    set 
+      vote_score = vote_score - OLD.vote_type,
+      upvote_count = upvote_count - (CASE WHEN OLD.vote_type = 1 THEN 1 ELSE 0 END)
     where id = OLD.alert_id;
     return OLD;
   end if;

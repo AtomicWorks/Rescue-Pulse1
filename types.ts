@@ -32,6 +32,7 @@ export interface EmergencyAlert {
   isEmergency: boolean;
   isAnonymous?: boolean;
   voteScore?: number;
+  upvoteCount?: number;
   userVote?: 1 | -1; // 1 = up, -1 = down
 }
 

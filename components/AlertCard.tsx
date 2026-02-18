@@ -297,8 +297,8 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onVot
                 <button
                   onClick={() => onVote(alert.id, 'up')}
                   className={`p-2.5 transition-colors ${alert.userVote === 1
-                      ? (d ? 'bg-orange-500/20 text-orange-500' : 'bg-orange-100 text-orange-600')
-                      : (d ? 'text-slate-400 hover:text-orange-400 hover:bg-white/5' : 'text-slate-500 hover:text-orange-500 hover:bg-slate-200')
+                    ? (d ? 'bg-orange-500/20 text-orange-500' : 'bg-orange-100 text-orange-600')
+                    : (d ? 'text-slate-400 hover:text-orange-400 hover:bg-white/5' : 'text-slate-500 hover:text-orange-500 hover:bg-slate-200')
                     }`}
                 >
                   <svg className="w-5 h-5" fill={alert.userVote === 1 ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 15l7-7 7 7" /></svg>
@@ -308,14 +308,14 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onVot
                     alert.userVote === -1 ? 'text-blue-500' :
                       (d ? 'text-slate-300' : 'text-slate-700')
                   }`}>
-                  {alert.voteScore || 0}
+                  {alert.upvoteCount || 0}
                 </span>
 
                 <button
                   onClick={() => onVote(alert.id, 'down')}
                   className={`p-2.5 transition-colors ${alert.userVote === -1
-                      ? (d ? 'bg-blue-500/20 text-blue-500' : 'bg-blue-100 text-blue-600')
-                      : (d ? 'text-slate-400 hover:text-blue-400 hover:bg-white/5' : 'text-slate-500 hover:text-blue-500 hover:bg-slate-200')
+                    ? (d ? 'bg-blue-500/20 text-blue-500' : 'bg-blue-100 text-blue-600')
+                    : (d ? 'text-slate-400 hover:text-blue-400 hover:bg-white/5' : 'text-slate-500 hover:text-blue-500 hover:bg-slate-200')
                     }`}
                 >
                   <svg className="w-5 h-5" fill={alert.userVote === -1 ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" /></svg>

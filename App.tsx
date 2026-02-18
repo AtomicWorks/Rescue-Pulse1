@@ -176,6 +176,7 @@ const AppContent: React.FC = () => {
         isEmergency: a.is_emergency !== false,
         isAnonymous: a.is_anonymous === true,
         voteScore: a.vote_score || 0,
+        upvoteCount: a.upvote_count || 0,
         userVote: userVotes.get(a.id)
       }));
       setAlerts(mappedAlerts);
@@ -240,6 +241,7 @@ const AppContent: React.FC = () => {
                   isEmergency: updated.is_emergency !== false,
                   isAnonymous: updated.is_anonymous === true,
                   voteScore: updated.vote_score || 0,
+                  upvoteCount: updated.upvote_count || 0,
                   userVote: a.userVote // Keep local vote state
                 };
               }
@@ -491,13 +493,19 @@ const AppContent: React.FC = () => {
       scoreDelta = voteVal;
     }
 
+    // Calculate upvote delta
+    let upvoteDelta = 0;
+    if (currentVote === 1) upvoteDelta -= 1;
+    if (newVote === 1) upvoteDelta += 1;
+
     // Optimistic Update
     setAlerts(prev => prev.map(a => {
       if (a.id === alertId) {
         return {
           ...a,
           userVote: newVote,
-          voteScore: (a.voteScore || 0) + scoreDelta
+          voteScore: (a.voteScore || 0) + scoreDelta,
+          upvoteCount: (a.upvoteCount || 0) + upvoteDelta
         };
       }
       return a;
