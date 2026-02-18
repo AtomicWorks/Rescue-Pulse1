@@ -202,6 +202,14 @@ const AppContent: React.FC = () => {
             if (updated.user_id === user.id && updated.status === 'resolved') {
               setActiveAlert(null);
             }
+          } else if (payload.eventType === 'DELETE') {
+            const deleted = payload.old;
+            if (deleted && deleted.id) {
+              setAlerts(prev => prev.filter(a => a.id !== deleted.id));
+              if (activeAlert && activeAlert.id === deleted.id) {
+                setActiveAlert(null);
+              }
+            }
           }
         }
       )
@@ -453,6 +461,34 @@ const AppContent: React.FC = () => {
     }
   };
 
+  const handleDeleteAlert = async (alertId: string) => {
+    if (!user) return;
+    const alertToDelete = alerts.find(a => a.id === alertId);
+    if (!alertToDelete || alertToDelete.userId !== user.id) return;
+
+    // Optimistic removal
+    setAlerts(prev => prev.filter(a => a.id !== alertId));
+    if (activeAlert && activeAlert.id === alertId) {
+      setActiveAlert(null);
+    }
+
+    // Delete associated comments first
+    await supabase.from('comments').delete().eq('alert_id', alertId);
+
+    // Delete the alert from database
+    const { error } = await supabase
+      .from('alerts')
+      .delete()
+      .eq('id', alertId)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Error deleting alert:', error);
+      // Re-fetch on error to restore state
+      fetchAlerts();
+    }
+  };
+
   // --- Theme-aware class helpers ---
   const d = isDark; // shorthand
 
@@ -501,7 +537,7 @@ const AppContent: React.FC = () => {
 
       {/* Header */}
       <header className={`fixed top-0 w-full z-40 px-4 py-4 transition-all duration-300 backdrop-blur-xl theme-transition ${d ? 'bg-[#0A0E1A]/80 border-b border-white/[0.06] shadow-lg shadow-black/20'
-          : 'bg-white/70 border-b border-white/20 shadow-sm'
+        : 'bg-white/70 border-b border-white/20 shadow-sm'
         }`}>
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div onClick={() => setView('feed')} className="flex items-center space-x-3 cursor-pointer group">
@@ -582,7 +618,7 @@ const AppContent: React.FC = () => {
             <button
               onClick={() => setIsPostModalOpen(true)}
               className={`text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:scale-105 transition-all flex items-center gap-2 ${d ? 'bg-gradient-to-r from-cyan-600 to-teal-500 shadow-cyan-500/20 hover:shadow-cyan-500/30'
-                  : 'bg-slate-900 shadow-slate-900/20 hover:bg-slate-800'
+                : 'bg-slate-900 shadow-slate-900/20 hover:bg-slate-800'
                 }`}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
@@ -660,6 +696,7 @@ const AppContent: React.FC = () => {
                   key={alert.id}
                   alert={alert}
                   onRespond={handleRespond}
+                  onDelete={handleDeleteAlert}
                   onMessage={handleStartChat}
                   onViewProfile={handleViewProfile}
                   currentUser={user}
@@ -687,6 +724,7 @@ const AppContent: React.FC = () => {
                   key={alert.id}
                   alert={alert}
                   onRespond={handleRespond}
+                  onDelete={handleDeleteAlert}
                   onMessage={handleStartChat}
                   onViewProfile={handleViewProfile}
                   currentUser={user}
@@ -755,11 +793,11 @@ const AppContent: React.FC = () => {
 
       {/* Mobile Bottom Navigation */}
       <nav className={`fixed bottom-0 left-0 right-0 backdrop-blur-xl pb-safe pt-3 px-6 flex justify-around sm:hidden z-40 transition-all theme-transition ${d ? 'bg-[#0A0E1A]/90 border-t border-white/[0.06]'
-          : 'bg-white/90 border-t border-slate-200'
+        : 'bg-white/90 border-t border-slate-200'
         }`}>
         <button onClick={() => setView('feed')} className={`flex flex-col items-center space-y-1 transition-colors ${view === 'feed' || view === 'map' || view === 'my_requests'
-            ? (d ? 'text-cyan-400' : 'text-red-600')
-            : (d ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600')
+          ? (d ? 'text-cyan-400' : 'text-red-600')
+          : (d ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600')
           }`}>
           <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
           <span className="text-[10px] font-bold">Home</span>
@@ -770,15 +808,15 @@ const AppContent: React.FC = () => {
           <span className="text-[10px] font-bold">Post</span>
         </button>
         <button onClick={() => { setView('messages'); setChatPartner(null); }} className={`flex flex-col items-center space-y-1 transition-colors ${view === 'messages'
-            ? (d ? 'text-cyan-400' : 'text-red-600')
-            : (d ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600')
+          ? (d ? 'text-cyan-400' : 'text-red-600')
+          : (d ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600')
           }`}>
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
           <span className="text-[10px] font-bold">Msg</span>
         </button>
         <button onClick={() => setView('profile')} className={`flex flex-col items-center space-y-1 transition-colors ${view === 'profile'
-            ? (d ? 'text-cyan-400' : 'text-red-600')
-            : (d ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600')
+          ? (d ? 'text-cyan-400' : 'text-red-600')
+          : (d ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600')
           }`}>
           <img src={user.avatar} className={`w-6 h-6 rounded-full border-2 ${view === 'profile' ? (d ? 'border-cyan-400' : 'border-red-600') : 'border-transparent'
             }`} />

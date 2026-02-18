@@ -8,12 +8,13 @@ import { useTheme } from './ThemeContext';
 interface AlertCardProps {
   alert: EmergencyAlert;
   onRespond: (alertId: string) => void;
+  onDelete?: (alertId: string) => void;
   onMessage?: (userId: string, userName: string) => void;
   onViewProfile?: (userId: string) => void;
   currentUser: User | null;
 }
 
-const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onMessage, onViewProfile, currentUser }) => {
+const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onMessage, onViewProfile, currentUser }) => {
   const { isDark } = useTheme();
   const d = isDark;
   const [advice, setAdvice] = useState<string | null>(null);
@@ -25,6 +26,8 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onMessage, onVi
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const isCurrentUser = currentUser?.id === alert.userId;
   const isAnonymous = alert.isAnonymous;
@@ -161,8 +164,8 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onMessage, onVi
 
   return (
     <div className={`group rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1 relative overflow-hidden theme-transition ${d
-        ? `glass-light hover:bg-white/[0.07] ${isEmergency ? 'shadow-lg shadow-red-500/10 border-red-500/20' : 'hover:shadow-lg hover:shadow-black/20'}`
-        : `bg-white ${isEmergency ? 'shadow-lg shadow-red-100 border border-red-100' : 'shadow-sm border border-slate-100 hover:shadow-xl hover:border-slate-200'}`
+      ? `glass-light hover:bg-white/[0.07] ${isEmergency ? 'shadow-lg shadow-red-500/10 border-red-500/20' : 'hover:shadow-lg hover:shadow-black/20'}`
+      : `bg-white ${isEmergency ? 'shadow-lg shadow-red-100 border border-red-100' : 'shadow-sm border border-slate-100 hover:shadow-xl hover:border-slate-200'}`
       }`}>
 
       {/* Background Status Indicator */}
@@ -207,18 +210,31 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onMessage, onVi
           </div>
         </div>
 
-        <div className="flex flex-col items-end gap-2">
-          <span className={`px-3 py-1 rounded-full text-xs font-bold ring-1 ring-inset ${categoryColors[alert.category] || 'bg-gray-100 text-gray-700'}`}>
-            {alert.category}
-          </span>
-          {!isEmergency && severityBadge(alert.severity)}
+        <div className="flex items-start gap-2">
+          <div className="flex flex-col items-end gap-2">
+            <span className={`px-3 py-1 rounded-full text-xs font-bold ring-1 ring-inset ${categoryColors[alert.category] || 'bg-gray-100 text-gray-700'}`}>
+              {alert.category}
+            </span>
+            {!isEmergency && severityBadge(alert.severity)}
+          </div>
+          {/* Delete button - only for own posts */}
+          {isCurrentUser && onDelete && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true); }}
+              className={`p-2 rounded-xl transition-all sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 ${d ? 'hover:bg-red-500/15 text-slate-500 hover:text-red-400' : 'hover:bg-red-50 text-slate-300 hover:text-red-500'
+                }`}
+              title="Delete post"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            </button>
+          )}
         </div>
       </div>
 
       <div className="mb-5 pl-2">
         <p className={`text-sm leading-relaxed p-4 rounded-2xl ${d
-            ? `text-slate-300 ${isEmergency ? 'bg-red-500/10 border border-red-500/10' : 'bg-white/[0.03] border border-white/[0.06]'}`
-            : `text-slate-700 ${isEmergency ? 'bg-red-50 border border-red-100' : 'bg-slate-50 border border-slate-100'}`
+          ? `text-slate-300 ${isEmergency ? 'bg-red-500/10 border border-red-500/10' : 'bg-white/[0.03] border border-white/[0.06]'}`
+          : `text-slate-700 ${isEmergency ? 'bg-red-50 border border-red-100' : 'bg-slate-50 border border-slate-100'}`
           }`}>
           {alert.description}
         </p>
@@ -364,7 +380,7 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onMessage, onVi
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Ask for details or offer advice..."
                 className={`flex-1 rounded-xl px-4 py-2.5 text-xs transition-all outline-none focus:ring-2 ${d ? 'bg-white/[0.04] border border-white/[0.08] focus:bg-white/[0.08] focus:ring-cyan-500/20 focus:border-cyan-500/30 text-white placeholder:text-slate-500'
-                    : 'bg-slate-50 border border-slate-200 focus:bg-white focus:ring-slate-900/10 focus:border-slate-400 text-slate-900 placeholder:text-slate-400'
+                  : 'bg-slate-50 border border-slate-200 focus:bg-white focus:ring-slate-900/10 focus:border-slate-400 text-slate-900 placeholder:text-slate-400'
                   }`}
               />
               <button
@@ -390,6 +406,48 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onMessage, onVi
           {alert.responders.length} Responding
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center rounded-3xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+          <div className={`absolute inset-0 ${d ? 'bg-[#0A0E1A]/80' : 'bg-white/80'} backdrop-blur-sm`}></div>
+          <div className={`relative z-10 p-6 sm:p-8 rounded-2xl shadow-2xl max-w-[90%] sm:max-w-xs w-full text-center ${d ? 'bg-[#141824] border border-white/10 shadow-black/40' : 'bg-white border border-slate-200 shadow-slate-200/50'
+            }`}>
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${d ? 'bg-red-500/15 border border-red-500/20' : 'bg-red-50 border border-red-100'
+              }`}>
+              <svg className={`w-6 h-6 ${d ? 'text-red-400' : 'text-red-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            </div>
+            <h3 className={`text-lg font-bold mb-2 ${d ? 'text-white' : 'text-slate-900'}`}>Delete this post?</h3>
+            <p className={`text-sm mb-6 ${d ? 'text-slate-400' : 'text-slate-500'}`}>This action cannot be undone. All comments will also be removed.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${d ? 'bg-white/5 text-slate-300 hover:bg-white/10 border border-white/10' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
+                  }`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setDeleting(true);
+                  if (onDelete) await onDelete(alert.id);
+                  setDeleting(false);
+                  setShowDeleteConfirm(false);
+                }}
+                disabled={deleting}
+                className="flex-1 py-3 rounded-xl font-bold text-sm text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20 transition-all disabled:opacity-70 flex items-center justify-center gap-2"
+              >
+                {deleting ? (
+                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                ) : (
+                  'Delete'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
