@@ -261,9 +261,9 @@ const AppContent: React.FC = () => {
     ));
   };
 
-  const handleStartChat = (userId: string, userName: string) => {
+  const handleStartChat = (userId: string, userName: string, userAvatar?: string) => {
     if (!user) return;
-    setChatPartner({ id: userId, name: userName });
+    setChatPartner({ id: userId, name: userName, avatar: userAvatar });
     setView('messages');
   };
 
@@ -758,8 +758,8 @@ const AppContent: React.FC = () => {
             user={viewingUser}
             isOwnProfile={false}
             onBack={() => setView('feed')}
-            onMessage={(id, name) => {
-              handleStartChat(id, name);
+            onMessage={(id: string, name: string, avatar?: string) => {
+              handleStartChat(id, name, avatar);
             }}
           />
         )}

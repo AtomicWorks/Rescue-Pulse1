@@ -9,7 +9,7 @@ interface AlertCardProps {
   alert: EmergencyAlert;
   onRespond: (alertId: string) => void;
   onDelete?: (alertId: string) => void;
-  onMessage?: (userId: string, userName: string) => void;
+  onMessage?: (userId: string, userName: string, userAvatar?: string) => void;
   onViewProfile?: (userId: string) => void;
   currentUser: User | null;
 }
@@ -292,7 +292,7 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onRespond, onDelete, onMes
           <>
             {onMessage && !isAnonymous && (
               <button
-                onClick={() => onMessage(alert.userId, alert.userName)}
+                onClick={() => onMessage(alert.userId, alert.userName, alert.userAvatar)}
                 className={`flex-1 min-w-[100px] py-2.5 px-4 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-1.5 ${d ? 'bg-cyan-500/15 text-cyan-400 hover:bg-cyan-500/25 border-cyan-500/20' : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200'
                   }`}
               >

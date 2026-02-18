@@ -8,7 +8,7 @@ interface ProfilePageProps {
     isOwnProfile?: boolean;
     onUpdate?: (updatedUser: User) => void;
     onBack: () => void;
-    onMessage?: (userId: string, userName: string) => void;
+    onMessage?: (userId: string, userName: string, userAvatar?: string) => void;
 }
 
 // Helper to convert Google Drive sharing links to direct image URLs
@@ -206,7 +206,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, isOwnProfile = false, o
                     {/* Message Button for Other Users */}
                     {!isOwnProfile && onMessage && (
                         <button
-                            onClick={() => onMessage(user.id, user.name)}
+                            onClick={() => onMessage(user.id, user.name, user.avatar)}
                             className={`mt-6 px-6 py-2 text-white rounded-xl font-bold text-sm shadow-md transition-all flex items-center ${d ? 'bg-gradient-to-r from-cyan-600 to-teal-500 shadow-cyan-500/20 hover:shadow-cyan-500/30' : 'bg-slate-900 shadow-slate-900/20 hover:bg-slate-800'
                                 }`}
                         >
@@ -218,8 +218,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, isOwnProfile = false, o
 
                 {message && (
                     <div className={`mb-6 p-4 rounded-xl text-sm font-medium flex items-center ${message.type === 'success'
-                            ? (d ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border border-emerald-100')
-                            : (d ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-amber-50 text-amber-700 border border-amber-100')
+                        ? (d ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border border-emerald-100')
+                        : (d ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-amber-50 text-amber-700 border border-amber-100')
                         }`}>
                         {message.text}
                     </div>
