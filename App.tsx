@@ -942,6 +942,7 @@ const AppContent: React.FC = () => {
             isOwnProfile={true}
             onUpdate={handleUpdateUser}
             onBack={() => setView('feed')}
+            onViewAlert={handleViewComments}
           />
         )}
 
@@ -953,6 +954,7 @@ const AppContent: React.FC = () => {
             onMessage={(id: string, name: string, avatar?: string) => {
               handleStartChat(id, name, avatar);
             }}
+            onViewAlert={handleViewComments}
           />
         )}
 

@@ -71,6 +71,16 @@ create table if not exists public.votes (
 -- Add comment_count and remove alert_messages if exists
 drop table if exists public.alert_messages;
 
+-- Activities Table
+create table if not exists public.activities (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  type text not null, -- 'created_alert', 'commented', 'upvoted'
+  alert_id uuid references public.alerts(id) on delete cascade not null,
+  metadata jsonb default '{}'::jsonb,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
 -- Add vote_score, upvote_count, comment_count columns
 do $$
 begin
@@ -91,7 +101,7 @@ alter table public.messages enable row level security;
 alter table public.comments enable row level security;
 alter table public.profiles enable row level security;
 alter table public.votes enable row level security;
-alter table public.alert_messages enable row level security;
+alter table public.activities enable row level security;
 
 -- Drop existing policies to ensure clean state and avoid conflicts
 drop policy if exists "Everyone can read alerts" on public.alerts;
@@ -228,6 +238,11 @@ with check (
   )
 );
 
+-- Activities Policies
+create policy "Users can view their own activities"
+on public.activities for select
+using (auth.uid() = user_id);
+
 -- CRITICAL: Enable Realtime
 do $$
 begin
@@ -336,3 +351,52 @@ drop trigger if exists on_vote_change on public.votes;
 create trigger on_vote_change
 after insert or update or delete on public.votes
 for each row execute function public.update_vote_score();
+
+-- Triggers for Auto-Logging Activities
+
+-- 1. Alert Creation
+create or replace function public.log_alert_creation()
+returns trigger as $$
+begin
+  insert into public.activities (user_id, type, alert_id, metadata)
+  values (NEW.user_id, 'created_alert', NEW.id, jsonb_build_object('title', NEW.category));
+  return NEW;
+end;
+$$ language plpgsql;
+
+drop trigger if exists on_alert_created on public.alerts;
+create trigger on_alert_created
+after insert on public.alerts
+for each row execute function public.log_alert_creation();
+
+-- 2. Comment Creation
+create or replace function public.log_comment_creation()
+returns trigger as $$
+begin
+  insert into public.activities (user_id, type, alert_id, metadata)
+  values (NEW.user_id, 'commented', NEW.alert_id, jsonb_build_object('text', substring(NEW.text from 1 for 50)));
+  return NEW;
+end;
+$$ language plpgsql;
+
+drop trigger if exists on_comment_created on public.comments;
+create trigger on_comment_created
+after insert on public.comments
+for each row execute function public.log_comment_creation();
+
+-- 3. Upvote Creation (Vote Type = 1)
+create or replace function public.log_vote_creation()
+returns trigger as $$
+begin
+  if (NEW.vote_type = 1) then
+    insert into public.activities (user_id, type, alert_id)
+    values (NEW.user_id, 'upvoted', NEW.alert_id);
+  end if;
+  return NEW;
+end;
+$$ language plpgsql;
+
+drop trigger if exists on_vote_created on public.votes;
+create trigger on_vote_created
+after insert on public.votes
+for each row execute function public.log_vote_creation();

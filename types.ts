@@ -56,3 +56,15 @@ export interface AlertComment {
   text: string;
   createdAt: string;
 }
+
+export interface UserActivity {
+  id: string;
+  user_id: string;
+  type: 'created_alert' | 'commented' | 'upvoted';
+  alert_id: string;
+  metadata: {
+    title?: string;
+    text?: string;
+  };
+  created_at: string;
+}
