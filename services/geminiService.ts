@@ -1,9 +1,9 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, Chat } from "@google/genai";
 
-const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 // Singleton to hold the chat session state
-let chatSession: any = null;
+let chatSession: Chat | null = null;
 
 export const sendChatMessage = async (message: string) => {
   const ai = getAI();
@@ -66,7 +66,9 @@ export const analyzeSituation = async (description: string) => {
         }
       }
     });
-    return JSON.parse(response.text);
+    const text = response.text;
+    if (!text) throw new Error("No response text");
+    return JSON.parse(text);
   } catch (error) {
     console.error("Gemini Analysis Error:", error);
     return { category: 'Other', priority: 'Medium', summary: description };
@@ -94,11 +96,19 @@ export const findNearbyPlaces = async (lat: number, lng: number, query: string) 
 
     // The SDK returns grounding metadata in the candidates
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    let text = response.text || "";
     
-    // Extract map URIs and titles
-    // Note: The actual text response will contain the natural language answer, 
-    // but we can look at the text or just return the text which usually contains the list.
-    return response.text;
+    // Extract map URIs and titles per guideline
+    if (chunks.length > 0) {
+        text += "\n\nSources:";
+        chunks.forEach((chunk: any) => {
+            if (chunk.maps?.uri) {
+                text += `\n- ${chunk.maps.title || 'Map Location'}: ${chunk.maps.uri}`;
+            }
+        });
+    }
+    
+    return text;
   } catch (error) {
     console.error("Gemini Maps Error:", error);
     return "Unable to retrieve nearby locations at this time. Please use a local map app.";
